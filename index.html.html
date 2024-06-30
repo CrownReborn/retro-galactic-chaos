@@ -1,0 +1,220 @@
+<html><head><base href="https://websim.ai" />
+<title>Galactic Chaos: A Retro Pixel Adventure</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+  }
+  #gameCanvas {
+    display: block;
+    margin: auto;
+  }
+  #controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+  }
+  .btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #ff0000;
+    color: white;
+    border: none;
+    border-radius: 5px;
+  }
+  #gameOver {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    display: none;
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="controls">
+  <button class="btn" id="growBtn">Grow</button>
+  <button class="btn" id="heatBtn">Heat</button>
+  <button class="btn" id="collapseBtn">Collapse</button>
+  <button class="btn" id="freezeBtn">Freeze</button>
+</div>
+<div id="gameOver"></div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const centerX = canvas.width / 2;
+const centerY = canvas.height / 2;
+
+let blackHoleSize = 50;
+let blackHoleColor = '#ffffff';
+let planets = [];
+let stars = [];
+let gameState = 'playing';
+let clickCount = 0;
+
+function createPlanets() {
+  const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f7d794', '#786fa6'];
+  for (let i = 0; i < 5; i++) {
+    planets.push({
+      distance: 100 + i * 50,
+      angle: Math.random() * Math.PI * 2,
+      speed: 0.02 - i * 0.003,
+      size: 10 + Math.random() * 10,
+      color: colors[i]
+    });
+  }
+}
+
+function createStars() {
+  for (let i = 0; i < 200; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2
+    });
+  }
+}
+
+function drawStars() {
+  ctx.fillStyle = '#ffffff';
+  stars.forEach(star => {
+    ctx.fillRect(star.x, star.y, star.size, star.size);
+  });
+}
+
+function drawBlackHole() {
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, blackHoleSize, 0, Math.PI * 2);
+  ctx.fillStyle = blackHoleColor;
+  ctx.fill();
+}
+
+function drawPlanets() {
+  planets.forEach(planet => {
+    const x = centerX + Math.cos(planet.angle) * planet.distance;
+    const y = centerY + Math.sin(planet.angle) * planet.distance;
+    ctx.beginPath();
+    ctx.arc(x, y, planet.size, 0, Math.PI * 2);
+    ctx.fillStyle = planet.color;
+    ctx.fill();
+  });
+}
+
+function updatePlanets() {
+  planets.forEach(planet => {
+    planet.angle += planet.speed;
+  });
+}
+
+function drawScene() {
+  ctx.fillStyle = '#000033';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawStars();
+  drawBlackHole();
+  drawPlanets();
+}
+
+function gameLoop() {
+  if (gameState === 'playing') {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawScene();
+    updatePlanets();
+    requestAnimationFrame(gameLoop);
+  }
+}
+
+function endGame(message) {
+  gameState = 'over';
+  const gameOver = document.getElementById('gameOver');
+  gameOver.textContent = message;
+  gameOver.style.display = 'block';
+}
+
+document.getElementById('growBtn').addEventListener('click', () => {
+  clickCount++;
+  blackHoleSize += 10;
+  planets.forEach(planet => planet.distance -= 5);
+  if (clickCount >= 10) {
+    planets = [];
+  }
+  if (clickCount >= 11) {
+    endGame('Game Over! The black hole ate the entire solar system!');
+  }
+});
+
+document.getElementById('heatBtn').addEventListener('click', () => {
+  clickCount++;
+  if (clickCount <= 10) {
+    blackHoleColor = clickCount > 5 ? '#ff4500' : '#ffa500';
+    planets.forEach(planet => planet.color = '#ff6347');
+  }
+  if (clickCount >= 11) {
+    endGame('Game Over! The entire solar system was burned.');
+  }
+});
+
+document.getElementById('collapseBtn').addEventListener('click', () => {
+  gameState = 'collapsed';
+  planets = [];
+  blackHoleSize = 0;
+  stars = [];
+  for (let i = 0; i < 500; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 3,
+      speed: Math.random() * 2 + 1
+    });
+  }
+  
+  function animateNebula() {
+    ctx.fillStyle = 'rgba(25, 25, 112, 0.1)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'white';
+    stars.forEach(star => {
+      ctx.fillRect(star.x, star.y, star.size, star.size);
+      star.x += star.speed;
+      star.y += star.speed;
+      if (star.x > canvas.width) star.x = 0;
+      if (star.y > canvas.height) star.y = 0;
+    });
+    if (gameState === 'collapsed') {
+      requestAnimationFrame(animateNebula);
+    }
+  }
+  animateNebula();
+});
+
+document.getElementById('freezeBtn').addEventListener('click', () => {
+  clickCount++;
+  blackHoleColor = `rgb(${255 - clickCount * 25}, ${255 - clickCount * 25}, 255)`;
+  if (clickCount >= 10) {
+    planets.forEach(planet => planet.speed = 0);
+  }
+  if (clickCount >= 11) {
+    endGame('Game Over! The solar system froze over.');
+  }
+});
+
+createPlanets();
+createStars();
+gameLoop();
+</script>
+</body></html>
